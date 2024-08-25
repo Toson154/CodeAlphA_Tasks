@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily To-Do List</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .date {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #555;
+        }
+        .input-container {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px 0 0 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 0 5px 5px 0;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .filters, .actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .filters button, .actions button {
+            color: #45a049;
+            background-color: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        .filters button.active, .actions button.active {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background-color: #f9f9f9;
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+            position: relative;
+        }
+        li.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+        li label {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            cursor: pointer;
+        }
+        li input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        li .button-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        li .button-container button {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        li .button-container button.edit-button {
+            background-color: #ffc107;
+        }
+        li .button-container button.edit-button:hover {
+            background-color: #e0a800;
+        }
+        li .button-container button.delete-button {
+            background-color: #ff4d4d;
+        }
+        li .button-container button.delete-button:hover {
+            background-color: #ff3333;
+        }
+        .edit-icon, .delete-icon {
+            font-size: 16px;
+            color: white;
+        }
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+        .modal-header, .modal-body, .modal-footer {
+            margin-bottom: 15px;
+        }
+        .modal-header h2 {
+            margin: 0;
+        }
+        .modal-close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        @media (max-width: 600px) {
+            .input-container {
+                flex-direction: column;
+            }
+            .actions, .filters {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Daily To-Do List</h1>
+        <div class="date" id="currentDate"></div>
+        <div class="input-container">
+            <input type="text" id="taskInput" placeholder="Enter your task">
+            <button onclick="addTask()">Add Task</button>
+        </div>
+        <div id="error" class="error"></div>
+        <div class="filters">
+            <button class="filter-button active" onclick="filterTasks('all')">All</button>
+            <button class="filter-button" onclick="filterTasks('completed')">Completed</button>
+            <button class="filter-button" onclick="filterTasks('active')">Active</button>
+        </div>
+        <div class="actions">
+            <button onclick="removeAllTasks()">Remove All</button>
+            <button onclick="unselectAllTasks()">Unselect All</button>
+        </div>
+        <ul id="taskList"></ul>
+    </div>
+
+    <!-- Modal for Editing Task -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-close" onclick="closeModal()">&times;</span>
+                <h2>Edit Task</h2>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="editTaskInput" placeholder="Enter new task text">
+            </div>
+            <div class="modal-footer">
+                <button onclick="saveTask()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEditItem;
+
+        // Display current date
+        document.getElementById('currentDate').innerText = new Date().toDateString();
+
+        function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const taskText = taskInput.value.trim();
+            const errorDiv = document.getElementById('error');
+            errorDiv.innerText = ''; // Clear previous errors
+
+            if (taskText === '') {
+                errorDiv.innerText = 'Task cannot be empty.';
+                return;
+            }
+
+            const li = document.createElement('li');
+            const label = document.createElement('label');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+
+            // Mark task as completed when checkbox is clicked
+            checkbox.onchange = function() {
+                if (checkbox.checked) {
+                    li.classList.add('completed');
+                } else {
+                    li.classList.remove('completed');
+                }
+                saveTasks(); // Save tasks after change
+            };
+
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(taskText));
+            li.appendChild(label);
+
+            // Add button container for edit and delete buttons
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'button-container';
+
+            // Add edit button with icon
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-button';
+            editBtn.innerHTML = '<i class="fas fa-edit edit-icon"></i>'; // Edit icon
+            editBtn.onclick = function() {
+                currentEditItem = li; // Set current item to edit
+                document.getElementById('editTaskInput').value = label.childNodes[1].nodeValue;
+                document.getElementById('editModal').style.display = 'block'; // Show modal
+            };
+
+
+            buttonContainer.appendChild(editBtn);
+
+            // Add delete button with icon
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'delete-button';
+            removeBtn.innerHTML = '<i class="fas fa-trash-alt delete-icon"></i>'; // Trash icon
+            removeBtn.onclick = function(event) {
+                event.stopPropagation(); // Prevent the toggle completion event
+                if (confirm('Are you sure you want to delete this task?')) {
+                    li.remove();
+                    saveTasks(); // Save tasks after deletion
+                }
+            };
+            buttonContainer.appendChild(removeBtn);
+
+            li.appendChild(buttonContainer);
+
+            // Add task to the list
+            document.getElementById('taskList').appendChild(li);
+
+            // Clear the input
+            taskInput.value = '';
+            saveTasks(); // Save tasks after addition
+        }
+
+        function filterTasks(filter) {
+            const taskList = document.getElementById('taskList');
+            const tasks = taskList.children;
+
+            // Remove active filter class from all buttons
+            const filterButtons = document.querySelectorAll('.filter-button');
+            filterButtons.forEach(button => button.classList.remove('active'));
+
+            // Apply the active filter class to the clicked button
+            event.target.classList.add('active');
+
+            for (let i = 0; i < tasks.length; i++) {
+                const task = tasks[i];
+                if (filter === 'all') {
+                    task.style.display = '';
+                } else if (filter === 'completed' && !task.classList.contains('completed')) {
+                    task.style.display = 'none';
+                } else if (filter === 'active' && task.classList.contains('completed')) {
+                    task.style.display = 'none';
+                } else {
+                    task.style.display = '';
+                }
+            }
+        }
+
+        function removeAllTasks() {
+            if (confirm('Are you sure you want to remove all tasks?')) {
+                document.getElementById('taskList').innerHTML = '';
+                saveTasks(); // Save changes after removing all tasks
+            }
+        }
+
+        function unselectAllTasks() {
+            const checkboxes = document.querySelectorAll('#taskList input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = false);
+            filterTasks(document.querySelector('.filter-button.active').textContent.toLowerCase());
+            saveTasks(); // Save changes after unselecting all tasks
+        }
+
+        function saveTasks() {
+            const taskList = document.getElementById('taskList');
+            const tasks = [];
+            taskList.querySelectorAll('li').forEach(li => {
+                const taskText = li.querySelector('label').childNodes[1].nodeValue;
+                const isCompleted = li.classList.contains('completed');
+                tasks.push({ taskText, isCompleted });
+            });
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function loadTasks() {
+            const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.forEach(task => {
+                const li = document.createElement('li');
+                const label = document.createElement('label');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.checked = task.isCompleted;
+
+                checkbox.onchange = function() {
+                    if (checkbox.checked) {
+                        li.classList.add('completed');
+                    } else {
+                        li.classList.remove('completed');
+                    }
+                    saveTasks(); // Save tasks after change
+                };
+
+                label.appendChild(checkbox);
+                label.appendChild(document.createTextNode(task.taskText));
+                li.appendChild(label);
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'button-container';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'edit-button';
+                editBtn.innerHTML = '<i class="fas fa-edit edit-icon"></i>'; // Edit icon
+                editBtn.onclick = function() {
+                    currentEditItem = li; // Set current item to edit
+                    document.getElementById('editTaskInput').value = label.childNodes[1].nodeValue;
+                    document.getElementById('editModal').style.display = 'block'; // Show modal
+                };
+                buttonContainer.appendChild(editBtn);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'delete-button';
+                removeBtn.innerHTML = '<i class="fas fa-trash-alt delete-icon"></i>'; // Trash icon
+                removeBtn.onclick = function(event) {
+                    event.stopPropagation(); // Prevent the toggle completion event
+                    if (confirm('Are you sure you want to delete this task?')) {
+                        li.remove();
+                        saveTasks(); // Save tasks after deletion
+                    }
+                };
+                buttonContainer.appendChild(removeBtn);
+
+                li.appendChild(buttonContainer);
+
+                document.getElementById('taskList').appendChild(li);
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none'; // Hide modal
+        }
+
+        function saveTask() {
+            const newTaskText = document.getElementById('editTaskInput').value.trim();
+            if (newTaskText !== '') {
+                const label = currentEditItem.querySelector('label');
+                label.childNodes[1].nodeValue = newTaskText;
+                currentEditItem.classList.remove('completed'); // Remove completed class for updated task
+                saveTasks(); // Save tasks after editing
+            }
+            closeModal(); // Hide modal
+        }
+
+        // Initial load of tasks from localStorage
+        loadTasks();
+
+        // Clear tasks at midnight for a fresh daily list
+        setInterval(function() {
+            const now = new Date();
+            if (now.getHours() === 0 && now.getMinutes() === 0) {
+                document.getElementById('taskList').innerHTML = '';
+                localStorage.removeItem('tasks'); // Clear localStorage at midnight
+            }
+        }, 60000); // Check every minute
+    </script>
+</body>
+</html>
